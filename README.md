@@ -1,3 +1,7 @@
+## run FastApi development server locally
+
+`uvicorn --app-dir=. api.main:app --reload`
+
 ## build container
 
 `docker build -t pedrojunqueira/mycontainer .`
