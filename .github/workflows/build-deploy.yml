@@ -1,7 +1,22 @@
 name: test-and-deploy
 
-on:
-  workflow_call:
+on: 
+  workflow_dispatch:
+      inputs:
+        logLevel:
+          description: 'Log level'
+          required: true
+          default: 'warning'
+          type: choice
+          options:
+          - info
+          - warning
+          - debug
+        tags:
+          description: 'Test scenario tags'
+          required: false
+          type: boolean
+  
 
 permissions:
   id-token: write
