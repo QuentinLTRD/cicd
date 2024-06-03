@@ -58,7 +58,7 @@ jobs:
         with:
           push: true
           context: .
-          tags: pedrojunqueira/mycontainer:latest
+          tags: quentinltrd/mycontainer:latest
 
   deploy-azure:
     needs: docker
