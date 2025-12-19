@@ -27,4 +27,30 @@ RUN add-apt-repository ppa:deadsnakes/ppa -y \
 RUN curl -fsSL https://apt.releases.hashicorp.com/gpg \
       | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
-      https://a
+      https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+      > /etc/apt/sources.list.d/hashicorp.list \
+    && apt-get update \
+    && apt-get install -y \
+       terraform=1.9.5-1 \
+       vault=1.17.5-1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Azure CLI ----
+RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
+      | gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] \
+      https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" \
+      > /etc/apt/sources.list.d/azure-cli.list \
+    && apt-get update \
+    && apt-get install -y azure-cli=2.64.0-1~$(lsb_release -cs) \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Verification (optional but useful in CI) ----
+RUN terraform version \
+ && vault version \
+ && az version \
+ && python --version
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]
