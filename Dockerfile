@@ -1,6 +1,7 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH=/usr/local/bin:/usr/bin:/bin
 
 # ---- Base dependencies ----
 RUN apt-get update && apt-get install -y \
@@ -42,13 +43,13 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
       https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" \
       > /etc/apt/sources.list.d/azure-cli.list \
     && apt-get update \
-    && apt-get install -y azure-cli=2.64.0-1~$(lsb_release -cs) \
+    && apt-get install -y \
+       azure-cli=2.64.0-1~$(lsb_release -cs) \
     && rm -rf /var/lib/apt/lists/*
 
-# ---- Verification (optional but useful in CI) ----
+# ---- Safe verification only ----
 RUN terraform version \
  && vault version \
- && az version \
  && python --version
 
 WORKDIR /workspace
