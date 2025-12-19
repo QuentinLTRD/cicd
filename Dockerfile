@@ -43,22 +43,29 @@ RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/ter
     rm terraform.zip
 
 # -------------------------
-# Install Vault (buildx-safe)
+# Install Vault (buildx-safe, dependency-safe)
 # -------------------------
 ARG TARGETARCH
 
 RUN set -eux; \
+    apt-get update; \
+    apt-get install -y unzip ca-certificates; \
     case "${TARGETARCH}" in \
         amd64) VAULT_ARCH="amd64" ;; \
         arm64) VAULT_ARCH="arm64" ;; \
         *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac; \
-    curl -fsSL \
+    echo "Downloading Vault for ${VAULT_ARCH}"; \
+    curl -L \
       "https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_${VAULT_ARCH}.zip" \
       -o vault.zip; \
+    ls -lh vault.zip; \
     unzip vault.zip; \
     install -m 0755 vault /usr/local/bin/vault; \
-    rm -f vault vault.zip
+    vault version; \
+    rm -f vault vault.zip; \
+    rm -rf /var/lib/apt/lists/*
+
 
 
 # -------------------------
