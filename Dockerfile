@@ -43,12 +43,21 @@ RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/ter
     rm terraform.zip
 
 # -------------------------
-# Install Vault
+# Install Vault (multi-arch safe)
 # -------------------------
-RUN curl -fsSL https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip -o vault.zip && \
+RUN set -eux; \
+    ARCH="$(dpkg --print-architecture)"; \
+    case "${ARCH}" in \
+        amd64) VAULT_ARCH="amd64" ;; \
+        arm64) VAULT_ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
+    esac; \
+    curl -fsSL \
+      https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_${VAULT_ARCH}.zip \
+      -o vault.zip && \
     unzip vault.zip && \
-    mv vault /usr/local/bin/vault && \
-    rm vault.zip
+    install -m 0755 vault /usr/local/bin/vault && \
+    rm -f vault vault.zip
 
 # -------------------------
 # Install Azure CLI
