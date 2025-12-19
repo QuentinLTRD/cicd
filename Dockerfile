@@ -1,11 +1,74 @@
-FROM python:3.11
+# Base image
+FROM ubuntu:22.04
 
-WORKDIR /code
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
 
-COPY ./requirements.txt /code/requirements.txt
+# Versions
+ENV TERRAFORM_VERSION=1.9.5
+ENV VAULT_VERSION=1.17.5
+ENV AZURE_CLI_VERSION=2.64.0
+ENV PYTHON_VERSION=3.9
 
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    unzip \
+    gnupg \
+    lsb-release \
+    ca-certificates \
+    software-properties-common \
+    apt-transport-https \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY ./api /code/api
+# -------------------------
+# Install Python 3.9
+# -------------------------
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y \
+        python3.9 \
+        python3.9-distutils \
+        python3.9-venv \
+        python3-pip \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 \
+    && rm -rf /var/lib/apt/lists/*
 
-CMD ["uvicorn", "--app-dir=.", "api.main:app", "--host", "0.0.0.0", "--port", "80"]
+# -------------------------
+# Install Terraform
+# -------------------------
+RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip -o terraform.zip && \
+    unzip terraform.zip && \
+    mv terraform /usr/local/bin/terraform && \
+    rm terraform.zip
+
+# -------------------------
+# Install Vault
+# -------------------------
+RUN curl -fsSL https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip -o vault.zip && \
+    unzip vault.zip && \
+    mv vault /usr/local/bin/vault && \
+    rm vault.zip
+
+# -------------------------
+# Install Azure CLI
+# -------------------------
+RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg && \
+    install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/ && \
+    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" \
+        > /etc/apt/sources.list.d/azure-cli.list && \
+    rm microsoft.gpg && \
+    apt-get update && \
+    apt-get install -y azure-cli=${AZURE_CLI_VERSION}-1~$(lsb_release -cs) && \
+    rm -rf /var/lib/apt/lists/*
+
+# -------------------------
+# Verify installations
+# -------------------------
+RUN terraform version && \
+    vault version && \
+    az version && \
+    python --version
+
+# Default command
+CMD ["/bin/bash"]
