@@ -6,22 +6,22 @@ ENV AZURE_CLI_VERSION=2.64.0
 ENV PYTHON_VERSION=3.9.18
 
 # Install base dependencies
-RUN yum -y update && \
-    yum -y install \
+RUN yum -y update
+RUN yum -y install 
         # yum-utils \
-        curl \
-        unzip \
+RUN yum -y install curl
+RUN yum -y install unzip
         # git \
-        gcc \
+RUN yum -y install gcc
         # make \
         # openssl-devel \
-        bzip2-devel \
-        libffi-devel \
-        zlib-devel \
+RUN yum -y install bzip2-devel 
+RUN yum -y install libffi-devel 
+RUN yum -y install zlib-devel 
         # readline-devel \
-        sqlite-devel \
-        wget && \
-    yum clean all
+RUN yum -y install sqlite-devel
+RUN yum -y install wget
+RUN yum clean all
 
 # -----------------------------
 # Install Python 3.9 (from source)
