@@ -1,56 +1,76 @@
-FROM ubuntu:22.04
+FROM centos:7
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH=/usr/local/bin:/usr/bin:/bin
+ENV TERRAFORM_VERSION=1.9.5
+ENV VAULT_VERSION=1.17.5
+ENV AZURE_CLI_VERSION=2.64.0
+ENV PYTHON_VERSION=3.9.18
 
-# ---- Base dependencies ----
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    curl \
-    gnupg \
-    lsb-release \
-    software-properties-common \
-    unzip \
-    apt-transport-https \
-    && rm -rf /var/lib/apt/lists/*
+# Install base dependencies
+RUN yum -y update && \
+    yum -y install \
+        yum-utils \
+        curl \
+        unzip \
+        git \
+        gcc \
+        make \
+        openssl-devel \
+        bzip2-devel \
+        libffi-devel \
+        zlib-devel \
+        readline-devel \
+        sqlite-devel \
+        wget && \
+    yum clean all
 
-# ---- Python 3.9 ----
-RUN add-apt-repository ppa:deadsnakes/ppa -y \
-    && apt-get update \
-    && apt-get install -y \
-       python3.9 \
-       python3.9-distutils \
-       python3-pip \
-    && update-alternatives --install /usr/bin/python python /usr/bin/python3.9 1 \
-    && rm -rf /var/lib/apt/lists/*
+# -----------------------------
+# Install Python 3.9 (from source)
+# -----------------------------
+RUN cd /usr/src && \
+    wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
+    tar xzf Python-${PYTHON_VERSION}.tgz && \
+    cd Python-${PYTHON_VERSION} && \
+    ./configure --enable-optimizations && \
+    make altinstall && \
+    ln -sf /usr/local/bin/python3.9 /usr/bin/python3 && \
+    ln -sf /usr/local/bin/pip3.9 /usr/bin/pip3 && \
+    cd / && rm -rf /usr/src/Python-${PYTHON_VERSION}*
 
-# ---- HashiCorp (Terraform & Vault) ----
-RUN curl -fsSL https://apt.releases.hashicorp.com/gpg \
-      | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
-      https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
-      > /etc/apt/sources.list.d/hashicorp.list \
-    && apt-get update \
-    && apt-get install -y \
-       terraform=1.9.5-1 \
-       vault=1.17.5-1 \
-    && rm -rf /var/lib/apt/lists/*
+# -----------------------------
+# Install Terraform
+# -----------------------------
+RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
+    -o terraform.zip && \
+    unzip terraform.zip && \
+    mv terraform /usr/local/bin/terraform && \
+    chmod +x /usr/local/bin/terraform && \
+    rm terraform.zip
 
-# ---- Azure CLI ----
-RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
-      | gpg --dearmor -o /usr/share/keyrings/microsoft-archive-keyring.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] \
-      https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" \
-      > /etc/apt/sources.list.d/azure-cli.list \
-    && apt-get update \
-    && apt-get install -y \
-       azure-cli=2.64.0-1~$(lsb_release -cs) \
-    && rm -rf /var/lib/apt/lists/*
+# -----------------------------
+# Install Vault
+# -----------------------------
+RUN curl -fsSL https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip \
+    -o vault.zip && \
+    unzip vault.zip && \
+    mv vault /usr/local/bin/vault && \
+    chmod +x /usr/local/bin/vault && \
+    rm vault.zip
 
-# ---- Safe verification only ----
-RUN terraform version \
- && vault version \
- && python --version
+# -----------------------------
+# Install Azure CLI
+# -----------------------------
+RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc && \
+    sh -c 'echo -e "[azure-cli]\nname=Azure CLI\nbaseurl=https://packages.microsoft.com/yumrepos/azure-cli\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/azure-cli.repo' && \
+    yum install -y azure-cli-${AZURE_CLI_VERSION} && \
+    yum clean all
+
+# -----------------------------
+# Verify installations
+# -----------------------------
+RUN terraform version && \
+    vault version && \
+    az version && \
+    python3 --version
 
 WORKDIR /workspace
 
