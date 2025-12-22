@@ -1,40 +1,36 @@
-FROM centos:7
+FROM ubuntu:22.04
 
+ENV DEBIAN_FRONTEND=noninteractive
 ENV TERRAFORM_VERSION=1.9.5
 ENV VAULT_VERSION=1.17.5
 ENV AZURE_CLI_VERSION=2.64.0
-ENV PYTHON_VERSION=3.9.18
-
-# Install base dependencies
-RUN yum -y update
-RUN yum -y install 
-        # yum-utils \
-RUN yum -y install curl
-RUN yum -y install unzip
-        # git \
-RUN yum -y install gcc
-        # make \
-        # openssl-devel \
-RUN yum -y install bzip2-devel 
-RUN yum -y install libffi-devel 
-RUN yum -y install zlib-devel 
-        # readline-devel \
-RUN yum -y install sqlite-devel
-RUN yum -y install wget
-RUN yum clean all
 
 # -----------------------------
-# Install Python 3.9 (from source)
+# Base dependencies
 # -----------------------------
-RUN cd /usr/src && \
-    wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
-    tar xzf Python-${PYTHON_VERSION}.tgz && \
-    cd Python-${PYTHON_VERSION} && \
-    ./configure --enable-optimizations && \
-    make altinstall && \
-    ln -sf /usr/local/bin/python3.9 /usr/bin/python3 && \
-    ln -sf /usr/local/bin/pip3.9 /usr/bin/pip3 && \
-    cd / && rm -rf /usr/src/Python-${PYTHON_VERSION}*
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    unzip \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    apt-transport-https \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# -----------------------------
+# Install Python 3.9
+# -----------------------------
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && apt-get install -y \
+        python3.9 \
+        python3.9-distutils \
+        python3.9-venv \
+        python3-pip \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------
 # Install Terraform
@@ -57,12 +53,14 @@ RUN curl -fsSL https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAU
     rm vault.zip
 
 # -----------------------------
-# Install Azure CLI
+# Install Azure CLI (Pinned version)
 # -----------------------------
-RUN rpm --import https://packages.microsoft.com/keys/microsoft.asc && \
-    sh -c 'echo -e "[azure-cli]\nname=Azure CLI\nbaseurl=https://packages.microsoft.com/yumrepos/azure-cli\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" > /etc/yum.repos.d/azure-cli.repo' && \
-    yum install -y azure-cli-${AZURE_CLI_VERSION} && \
-    yum clean all
+RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg && \
+    echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" \
+        > /etc/apt/sources.list.d/azure-cli.list && \
+    apt-get update && \
+    apt-get install -y azure-cli=${AZURE_CLI_VERSION}-1~$(lsb_release -cs) && \
+    rm -rf /var/lib/apt/lists/*
 
 # -----------------------------
 # Verify installations
