@@ -45,12 +45,18 @@ RUN curl -fsSL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/ter
 # -----------------------------
 # Install Vault
 # -----------------------------
-RUN curl -fsSL https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip \
-    -o vault.zip && \
-    unzip vault.zip && \
-    mv vault /usr/local/bin/vault && \
-    chmod +x /usr/local/bin/vault && \
-    rm vault.zip
+# RUN curl -fsSL https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip \
+#     -o vault.zip && \
+#     unzip vault.zip && \
+#     mv vault /usr/local/bin/vault && \
+#     chmod +x /usr/local/bin/vault && \
+#     rm vault.zip
+
+
+
+RUN wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list \
+    sudo apt update && sudo apt install vault
 
 # -----------------------------
 # Install Azure CLI (Pinned version)
