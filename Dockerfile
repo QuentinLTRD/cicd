@@ -8,17 +8,17 @@ ENV PYTHON_VERSION=3.9.18
 # Install base dependencies
 RUN yum -y update && \
     yum -y install \
-        yum-utils \
+        # yum-utils \
         curl \
         unzip \
-        git \
+        # git \
         gcc \
-        make \
-        openssl-devel \
+        # make \
+        # openssl-devel \
         bzip2-devel \
         libffi-devel \
         zlib-devel \
-        readline-devel \
+        # readline-devel \
         sqlite-devel \
         wget && \
     yum clean all
